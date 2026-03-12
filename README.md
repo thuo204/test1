@@ -86,3 +86,4 @@ src/
   store/             # Zustand stores
   styles/            # globals.css
 ```
+
