@@ -1,0 +1,182 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  INSTRUCTOR
+  ADMIN
+}
+
+enum CourseLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  password      String
+  role          Role      @default(USER)
+  avatar        String?
+  bio           String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  enrollments   Enrollment[]
+  progress      LessonProgress[]
+  blogPosts     BlogPost[]
+  sessions      Session[]
+  analytics     Analytics[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Course {
+  id          String      @id @default(cuid())
+  slug        String      @unique
+  title       String
+  description String
+  thumbnail   String?
+  price       Float       @default(0)
+  level       CourseLevel @default(BEGINNER)
+  published   Boolean     @default(false)
+  featured    Boolean     @default(false)
+  tags        String[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  lessons     Lesson[]
+  enrollments Enrollment[]
+
+  @@map("courses")
+}
+
+model Lesson {
+  id          String   @id @default(cuid())
+  courseId    String
+  slug        String
+  title       String
+  content     String
+  videoUrl    String?
+  duration    Int      @default(0)
+  order       Int      @default(0)
+  published   Boolean  @default(false)
+  free        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  course      Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  progress    LessonProgress[]
+
+  @@unique([courseId, slug])
+  @@map("lessons")
+}
+
+model Enrollment {
+  id        String           @id @default(cuid())
+  userId    String
+  courseId  String
+  status    EnrollmentStatus @default(ACTIVE)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course    Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@map("enrollments")
+}
+
+model LessonProgress {
+  id          String   @id @default(cuid())
+  userId      String
+  lessonId    String
+  completed   Boolean  @default(false)
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson      Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@map("lesson_progress")
+}
+
+model BlogPost {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  title       String
+  excerpt     String
+  content     String
+  thumbnail   String?
+  published   Boolean   @default(false)
+  featured    Boolean   @default(false)
+  tags        String[]
+  authorId    String
+  views       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  author      User      @relation(fields: [authorId], references: [id])
+
+  @@map("blog_posts")
+}
+
+model Analytics {
+  id        String   @id @default(cuid())
+  userId    String?
+  event     String
+  path      String
+  metadata  Json?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("analytics")
+}
+
+model AdSlot {
+  id        String   @id @default(cuid())
+  name      String
+  placement String
+  imageUrl  String?
+  linkUrl   String?
+  active    Boolean  @default(true)
+  clicks    Int      @default(0)
+  impressions Int    @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("ad_slots")
+}
